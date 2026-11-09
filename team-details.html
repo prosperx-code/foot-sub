@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">Team — FootSub</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a href="index.html" class="brand">FOOT<span class="sub">SUB</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="index.html">Home</a>
+      <a href="matches.html">Matches</a>
+      <a href="standings.html">Standings</a>
+      <a href="bracket.html">Bracket</a>
+      <a href="teams.html" class="active">Teams</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+  </div>
+</header>
+
+<div class="ticker"><div class="ticker-track"></div></div>
+
+<section class="page-head" id="team-header"><p style="color:rgba(255,255,255,0.7);">Loading…</p></section>
+
+<section class="section">
+  <div class="wrap">
+    <p class="crumbs"><a href="teams.html">← Back to all teams</a></p>
+
+    <div class="section-head"><h2>Fixtures &amp; results</h2></div>
+    <div class="match-grid" id="team-matches" style="margin-bottom:36px;"></div>
+
+    <div class="section-head"><h2>Group table</h2></div>
+    <div class="table-scroll">
+      <table class="standings-table" id="team-group-table"></table>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-bottom">
+      <span>© 2026 FootSub.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="main.js"></script>
+<script>
+  const code = getQueryParam('code') || 'NGA';
+
+  function matchCard(m){
+    const statusHtml = m.status === 'LIVE' ? `<span class="status live">● ${m.minute}'</span>` :
+                        m.status === 'FT' ? `<span class="status">Full time</span>` :
+                        `<span class="kickoff">${new Date(m.kickoff_utc).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</span>`;
+    const score = m.status === 'UPCOMING' ? 'vs' : `${m.home_score} – ${m.away_score}`;
+    const homeCode = m.home_team.slice(0,3).toUpperCase(), awayCode = m.away_team.slice(0,3).toUpperCase();
+    return `
+      <a class="match-card" href="match-details.html?id=${m.id}" data-status="${m.status}">
+        <span class="comp">${m.competition}</span>
+        <span class="teams">
+          <span class="team-row ${m.winner === 'home' ? 'winner' : ''}">${crestImg(m.home_logo, homeCode)}${m.home_team}</span>
+          <span class="team-row ${m.winner === 'away' ? 'winner' : ''}">${crestImg(m.away_logo, awayCode)}${m.away_team}</span>
+        </span>
+        <span class="score-box">${score}</span>
+        ${statusHtml}
+      </a>`;
+  }
+
+  (async function(){
+    try{
+      const team = await getTeamByCode(code);
+
+      if(!team){
+        document.getElementById('team-header').innerHTML = `<div class="wrap"><h1>Team not found</h1><p>Try going back to <a href="teams.html" style="color:var(--white);">all teams</a>.</p></div>`;
+        return;
+      }
+
+      document.title = `${team.name} — FootSub`;
+      document.getElementById('team-header').innerHTML = `
+        <div class="wrap" style="display:flex; align-items:center; gap:18px;">
+          ${crestImg(team.logo, team.code, 56)}
+          <div>
+            <h1 style="margin-bottom:4px;">${team.name}</h1>
+            <p>Group ${team.group_name} · ${team.pts} points · ${team.played} played</p>
+          </div>
+        </div>`;
+
+      const [allMatches, standings] = await Promise.all([getAllMatches(), getStandingsByGroup(team.group_name)]);
+
+      const matches = allMatches.filter(m => m.home_team === team.name || m.away_team === team.name);
+      document.getElementById('team-matches').innerHTML = matches.length
+        ? matches.map(matchCard).join('')
+        : `<p class="placeholder-note">No fixtures found yet for ${team.name}.</p>`;
+
+      document.getElementById('team-group-table').innerHTML = `
+        <thead><tr><th>#</th><th>Team</th><th class="num">P</th><th class="num">Pts</th></tr></thead>
+        <tbody>
+          ${standings.map((t,i) => `
+            <tr style="${t.code === team.code ? 'background:var(--mint); font-weight:700;' : ''}">
+              <td><span class="pos-tag ${i < 2 ? 'qualify' : ''}">${i+1}</span></td>
+              <td class="team-cell">${crestImg(t.logo, t.code)}${t.name}</td>
+              <td class="num">${t.played}</td>
+              <td class="num">${t.pts}</td>
+            </tr>`).join('')}
+        </tbody>`;
+    } catch(err){
+      console.error(err);
+      document.getElementById('team-header').innerHTML = `<div class="wrap"><h1>Couldn't load team</h1><p>the api is my number one problem.</p></div>`;
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knockout Bracket — FootSub</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a href="index.html" class="brand">FOOT<span class="sub">SUB</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="index.html">Home</a>
+      <a href="matches.html">Matches</a>
+      <a href="standings.html">Standings</a>
+      <a href="bracket.html" class="active">Bracket</a>
+      <a href="teams.html">Teams</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+  </div>
+</header>
+
+<div class="ticker"><div class="ticker-track"></div></div>
+
+<section class="page-head">
+  <div class="wrap">
+    <h1>Knockout Bracket</h1>
+    <p>Round of 16 through to the Final — one loss and you're out.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="bracket" id="bracket-main"><p style="color:var(--ink-soft);">Loading…</p></div>
+
+    <div class="section-head" style="margin-top:40px;">
+      <h2>Third Place Play-off</h2>
+    </div>
+    <div class="match-grid" id="bracket-third"></div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-bottom">
+      <span>© 2026 FootSub.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="main.js"></script>
+<script>
+  function bracketRow(m, side){
+    const team = side === 'home' ? m.home_team : m.away_team;
+    const logo = side === 'home' ? m.home_logo : m.away_logo;
+    const score = m.status === 'UPCOMING' ? '' : (side === 'home' ? m.home_score : m.away_score);
+    const code = team.slice(0,3).toUpperCase();
+    const isWinner = m.winner === side;
+    return `
+      <div class="bracket-row ${isWinner ? 'winner' : ''}">
+        ${crestImg(logo, code, 18)}
+        <span>${team}</span>
+        <span class="b-score">${score}</span>
+      </div>`;
+  }
+
+  function bracketMatch(m){
+    return `
+      <a class="bracket-match" href="match-details.html?id=${m.id}" style="display:block;">
+        ${bracketRow(m,'home')}
+        ${bracketRow(m,'away')}
+      </a>`;
+  }
+
+  function matchCard(m){
+    const statusHtml = m.status === 'LIVE' ? `<span class="status live">● ${m.minute}'</span>` :
+                        m.status === 'FT' ? `<span class="status">Full time</span>` :
+                        `<span class="kickoff">${new Date(m.kickoff_utc).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</span>`;
+    const score = m.status === 'UPCOMING' ? 'vs' : `${m.home_score} – ${m.away_score}`;
+    const homeCode = m.home_team.slice(0,3).toUpperCase(), awayCode = m.away_team.slice(0,3).toUpperCase();
+    return `
+      <a class="match-card" href="match-details.html?id=${m.id}" data-status="${m.status}">
+        <span class="comp">${m.competition}</span>
+        <span class="teams">
+          <span class="team-row ${m.winner === 'home' ? 'winner' : ''}">${crestImg(m.home_logo, homeCode)}${m.home_team}</span>
+          <span class="team-row ${m.winner === 'away' ? 'winner' : ''}">${crestImg(m.away_logo, awayCode)}${m.away_team}</span>
+        </span>
+        <span class="score-box">${score}</span>
+        ${statusHtml}
+      </a>`;
+  }
+
+  (async function(){
+    try{
+      const stages = await getKnockoutMatches();
+      const mainStages = ['Round of 16','Quarter-Finals','Semi-Finals','Final'];
+
+      document.getElementById('bracket-main').innerHTML = mainStages.map(stage => {
+        const matches = stages[stage];
+        return `
+          <div class="bracket-col">
+            <h3>${stage}</h3>
+            ${matches.length ? matches.map(bracketMatch).join('') : '<p class="bracket-empty">Not decided yet</p>'}
+          </div>`;
+      }).join('');
+
+      document.getElementById('bracket-third').innerHTML = stages['Third Place'].length
+        ? stages['Third Place'].map(matchCard).join('')
+        : '<p class="placeholder-note">Not decided yet.</p>';
+    } catch(err){
+      console.error(err);
+      document.getElementById('bracket-main').innerHTML = '<p style="color:var(--ink-soft);">Couldn\'t load the bracket.</p>';
+    }
+  })();
+</script>
+</body>
+</html>

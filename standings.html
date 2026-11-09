@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Standings — FootSub</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a href="index.html" class="brand">FOOT<span class="sub">SUB</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="index.html">Home</a>
+      <a href="matches.html">Matches</a>
+      <a href="standings.html" class="active">Standings</a>
+      <a href="bracket.html">Bracket</a>
+      <a href="teams.html">Teams</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+  </div>
+</header>
+
+<div class="ticker"><div class="ticker-track"></div></div>
+
+<section class="page-head">
+  <div class="wrap">
+    <h1>Group Standings</h1>
+    <p>Top two in each group advance to the Round of 32.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap" id="all-groups"><p style="color:var(--ink-soft);">Loading…</p></div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-bottom">
+      <span>© 2026 FootSub.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="main.js"></script>
+<script>
+  const groups = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+  const container = document.getElementById('all-groups');
+
+  (async function(){
+    try{
+      const tables = await Promise.all(groups.map(g => getStandingsByGroup(g)));
+
+      container.innerHTML = groups.map((g, idx) => {
+        const rows = tables[idx];
+        if(!rows.length) return '';
+        return `
+          <div style="margin-bottom:34px;">
+            <h2 style="font-family:var(--font-display); font-size:20px; margin-bottom:12px;">Group ${g}</h2>
+            <div class="table-scroll">
+              <table class="standings-table">
+                <thead>
+                  <tr><th>#</th><th>Team</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GF</th><th class="num">GA</th><th class="num">GD</th><th class="num">Pts</th></tr>
+                </thead>
+                <tbody>
+                  ${rows.map((t,i) => `
+                    <tr>
+                      <td><span class="pos-tag ${i < 2 ? 'qualify' : ''}">${i+1}</span></td>
+                      <td class="team-cell"><a href="team-details.html?code=${t.code}" style="display:flex; align-items:center; gap:10px; color:inherit;">${crestImg(t.logo, t.code)}${t.name}</a></td>
+                      <td class="num">${t.played}</td><td class="num">${t.won}</td><td class="num">${t.drawn}</td><td class="num">${t.lost}</td>
+                      <td class="num">${t.gf}</td><td class="num">${t.ga}</td>
+                      <td class="num">${t.gf - t.ga > 0 ? '+' : ''}${t.gf - t.ga}</td>
+                      <td class="num"><strong>${t.pts}</strong></td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>`;
+      }).join('') || '<p style="color:var(--ink-soft);">No standings data yet.</p>';
+    } catch(err){
+      console.error(err);
+      container.innerHTML = '<p style="color:var(--ink-soft);">Couldn\'t load standings — omo e no gree work.</p>';
+    }
+  })();
+</script>
+</body>
+</html>

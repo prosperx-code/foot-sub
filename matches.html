@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>All Matches — FootSub</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a href="index.html" class="brand">FOOT<span class="sub">SUB</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="index.html">Home</a>
+      <a href="matches.html" class="active">Matches</a>
+      <a href="standings.html">Standings</a>
+      <a href="bracket.html">Bracket</a>
+      <a href="teams.html">Teams</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+  </div>
+</header>
+
+<div class="ticker"><div class="ticker-track"></div></div>
+
+<section class="page-head">
+  <div class="wrap">
+    <h1>All Matches</h1>
+    <p>Live, upcoming and finished — every World Cup 2026 match in one place.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="search-shell" style="margin-bottom:22px;">
+      <input id="global-search" type="text" placeholder="Search by team, e.g. Brazil…" aria-label="Search matches and teams">
+      <button id="global-search-btn">Search</button>
+    </div>
+    <div id="search-results" class="search-results hidden"></div>
+
+    <div class="filter-row">
+      <button class="filter-chip active" data-filter="all">All</button>
+      <button class="filter-chip" data-filter="LIVE">Live</button>
+      <button class="filter-chip" data-filter="UPCOMING">Upcoming</button>
+      <button class="filter-chip" data-filter="FT">Finished</button>
+    </div>
+
+    <div class="match-grid" id="all-matches"><p style="color:var(--ink-soft);">Loading…</p></div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>FOOTSUB</h4>
+        <p style="font-size:13.5px; max-width:320px; line-height:1.6;">Live scores, fixtures and stats for the FIFA World Cup 2026.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <a href="index.html">Home</a>
+        <a href="standings.html">Standings</a>
+        <a href="bracket.html">Bracket</a>
+        <a href="teams.html">Teams</a>
+      </div>
+      <div>
+        <h4>Info</h4>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 FootSub.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="main.js"></script>
+<script>
+  function matchCard(m){
+    const statusHtml = m.status === 'LIVE'
+      ? `<span class="status live">● ${m.minute}'</span>`
+      : (m.status === 'FT' ? `<span class="status">Full time</span>` : `<span class="kickoff">${new Date(m.kickoff_utc).toLocaleString(undefined,{weekday:'short',hour:'2-digit',minute:'2-digit'})}</span>`);
+    const score = (m.status === 'UPCOMING') ? 'vs' : `${m.home_score} – ${m.away_score}`;
+    const homeCode = m.home_team.slice(0,3).toUpperCase(), awayCode = m.away_team.slice(0,3).toUpperCase();
+    return `
+      <a class="match-card" href="match-details.html?id=${m.id}" data-status="${m.status}">
+        <span class="comp">${m.competition}</span>
+        <span class="teams">
+          <span class="team-row ${m.winner === 'home' ? 'winner' : ''}">${crestImg(m.home_logo, homeCode)}${m.home_team}</span>
+          <span class="team-row ${m.winner === 'away' ? 'winner' : ''}">${crestImg(m.away_logo, awayCode)}${m.away_team}</span>
+        </span>
+        <span class="score-box">${score}</span>
+        ${statusHtml}
+      </a>`;
+  }
+
+  (async function(){
+    try{
+      const all = await getAllMatches();
+      document.getElementById('all-matches').innerHTML = all.map(matchCard).join('') || '<p style="color:var(--ink-soft);">No matches found.</p>';
+    } catch(err){
+      console.error(err);
+      document.getElementById('all-matches').innerHTML = '<p style="color:var(--ink-soft);">Couldn\'t load matches — this foolish api wont work omo</p>';
+    }
+  })();
+</script>
+</body>
+</html>

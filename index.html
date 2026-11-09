@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FootSub — Live World Cup 2026 Scores &amp; Stats</title>
+<meta name="description" content="Live scores, fixtures, standings and stats for the FIFA World Cup 2026 and daily football around the world.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a href="index.html" class="brand">FOOT<span class="sub">SUB</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="index.html" class="active">Home</a>
+      <a href="matches.html">Matches</a>
+      <a href="standings.html">Standings</a>
+      <a href="bracket.html">Bracket</a>
+      <a href="teams.html">Teams</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+  </div>
+</header>
+
+<div class="ticker">
+  <div class="ticker-track"></div>
+</div>
+
+<section class="hero">
+  <div class="wrap">
+    <p class="eyebrow">FIFA World Cup 2026 · Daily Football</p>
+    <h1>Every match.<br>Every score.<br><span class="accent">Live, as it happens.</span></h1>
+    <p>FootSub tracks live scores, fixtures, standings and stats for the 2026 World Cup and daily leagues worldwide.</p>
+
+    <div class="search-shell">
+      <input id="global-search" type="text" placeholder="Search a team or match…" aria-label="Search matches and teams">
+      <button id="global-search-btn">Search</button>
+    </div>
+    <div id="search-results" class="search-results hidden"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Live now</h2>
+      <a class="see-all" href="matches.html">All matches →</a>
+    </div>
+    <div class="match-grid" id="live-matches"><p style="color:var(--ink-soft);">Loading….</p></div>
+  </div>
+</section>
+
+<section class="section alt">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Today's fixtures</h2>
+      <a class="see-all" href="matches.html">Full schedule →</a>
+    </div>
+    <div class="match-grid" id="today-matches"><p style="color:var(--ink-soft);">Loading…</p></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Group C standings</h2>
+      <a class="see-all" href="standings.html">All groups →</a>
+    </div>
+    <div class="table-scroll">
+      <table class="standings-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Team</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GD</th><th class="num">Pts</th>
+          </tr>
+        </thead>
+        <tbody id="standings-preview"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>FOOTSUB</h4>
+        <p style="font-size:13.5px; max-width:320px; line-height:1.6;">Live scores, fixtures and stats for the FIFA World Cup 2026 — pulled straight from API-Football.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <a href="matches.html">Matches</a>
+        <a href="standings.html">Standings</a>
+        <a href="bracket.html">Bracket</a>
+        <a href="teams.html">Teams</a>
+      </div>
+      <div>
+        <h4>Info</h4>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 FootSub. Built for World Cup fans.</span>
+      <span id="last-synced"></span>
+    </div>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="main.js"></script>
+<script>
+  function matchCard(m){
+    const statusHtml = m.status === 'LIVE'
+      ? `<span class="status live">● ${m.minute}'</span>`
+      : (m.status === 'FT' ? `<span class="status">Full time</span>` : `<span class="kickoff">${new Date(m.kickoff_utc).toLocaleString(undefined,{weekday:'short',hour:'2-digit',minute:'2-digit'})}</span>`);
+    const score = (m.status === 'UPCOMING') ? 'vs' : `${m.home_score} – ${m.away_score}`;
+    const homeCode = m.home_team.slice(0,3).toUpperCase(), awayCode = m.away_team.slice(0,3).toUpperCase();
+    return `
+      <a class="match-card" href="match-details.html?id=${m.id}" data-status="${m.status}">
+        <span class="comp">${m.competition}</span>
+        <span class="teams">
+          <span class="team-row ${m.winner === 'home' ? 'winner' : ''}">${crestImg(m.home_logo, homeCode)}${m.home_team}</span>
+          <span class="team-row ${m.winner === 'away' ? 'winner' : ''}">${crestImg(m.away_logo, awayCode)}${m.away_team}</span>
+        </span>
+        <span class="score-box">${score}</span>
+        ${statusHtml}
+      </a>`;
+  }
+
+  (async function(){
+    try{
+      const all = await getAllMatches();
+
+      document.getElementById('live-matches').innerHTML =
+        all.filter(m => m.status === 'LIVE').map(matchCard).join('') || '<p style="color:var(--ink-soft);">No matches live right now — check today\'s fixtures below.</p>';
+
+      document.getElementById('today-matches').innerHTML =
+        all.filter(m => m.status !== 'LIVE').slice(0,4).map(matchCard).join('');
+
+      const standings = await getStandingsByGroup('C');
+      document.getElementById('standings-preview').innerHTML = standings.map((t,i) => `
+        <tr>
+          <td><span class="pos-tag ${i < 2 ? 'qualify' : ''}">${i+1}</span></td>
+          <td class="team-cell">${crestImg(t.logo, t.code)}${t.name}</td>
+          <td class="num">${t.played}</td><td class="num">${t.won}</td><td class="num">${t.drawn}</td><td class="num">${t.lost}</td>
+          <td class="num">${t.gf - t.ga > 0 ? '+' : ''}${t.gf - t.ga}</td>
+          <td class="num"><strong>${t.pts}</strong></td>
+        </tr>`).join('');
+
+      document.getElementById('last-synced').textContent = 'Last synced ' + new Date().toLocaleTimeString();
+    } catch(err){
+      console.error(err);
+      document.getElementById('live-matches').innerHTML = '<p style="color:var(--ink-soft);">Couldn\'t load data — api keys are not friendly</p>';
+    }
+  })();
+</script>
+</body>
+</html>

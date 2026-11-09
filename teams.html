@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teams — FootSub</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a href="index.html" class="brand">FOOT<span class="sub">SUB</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="index.html">Home</a>
+      <a href="matches.html">Matches</a>
+      <a href="standings.html">Standings</a>
+      <a href="bracket.html">Bracket</a>
+      <a href="teams.html" class="active">Teams</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+  </div>
+</header>
+
+<div class="ticker"><div class="ticker-track"></div></div>
+
+<section class="page-head">
+  <div class="wrap">
+    <h1>Teams</h1>
+    <p>All 48 nations at the 2026 World Cup.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="search-shell" style="margin-bottom:24px;">
+      <input id="team-search" type="text" placeholder="Search a team…" aria-label="Search teams">
+      <button id="team-search-btn">Search</button>
+    </div>
+    <div class="team-grid" id="team-grid"><p style="color:var(--ink-soft);">Loading…</p></div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-bottom">
+      <span>© 2026 FootSub.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="main.js"></script>
+<script>
+  function teamCard(t){
+    return `
+      <a class="team-card" href="team-details.html?code=${t.code}">
+        ${crestImg(t.logo, t.code, 52)}
+        <h3>${t.name}</h3>
+        <p>Group ${t.group_name} · ${t.pts} pts</p>
+      </a>`;
+  }
+
+  function render(list){
+    document.getElementById('team-grid').innerHTML = list.map(teamCard).join('') || '<p style="color:var(--ink-soft);">No teams found.</p>';
+  }
+
+  let teamsCache = [];
+
+  (async function(){
+    try{
+      teamsCache = await getAllTeams();
+      render(teamsCache);
+    } catch(err){
+      console.error(err);
+      document.getElementById('team-grid').innerHTML = '<p style="color:var(--ink-soft);">Couldn\'t load teams — api key refuse to follow my order.</p>';
+    }
+  })();
+
+  const input = document.getElementById('team-search');
+  const btn = document.getElementById('team-search-btn');
+  function doSearch(){
+    const q = input.value.trim().toLowerCase();
+    render(teamsCache.filter(t => t.name.toLowerCase().includes(q)));
+  }
+  input.addEventListener('input', doSearch);
+  btn.addEventListener('click', doSearch);
+</script>
+</body>
+</html>
